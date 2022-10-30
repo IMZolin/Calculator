@@ -59,8 +59,11 @@ void Calculator::BaseOperations()
 		s.top() = y;
 		});
 	Operation* div = new Operation("/", 2, true, false, [](std::stack<double>& s) {
-		if (s.size() < 2 || s.top() == 0)
+		if (s.size() < 2)
 			throw std::exception("Error: There must be 2 arguments for division\n");
+		if (s.top() == 0)
+			throw std::exception("Error: The second argument cannot be 0\n");
+		//s.top() == 0
 		double x = s.top();
 		s.pop();
 		double y = s.top() / x;
@@ -91,7 +94,7 @@ void Calculator::importFunctions(HMODULE dll)
 	std::function func_realization = [dll, func_binary](std::stack<double>& args) {
 		if (args.size() == 0)
 			throw std::exception("Error: The operation is performed on at least one operand\n");
-		if (*func_binary && args.size() == 2) {
+		if (*func_binary && args.size() >= 2) {
 			double (*pFunction)(double, double);
 			(FARPROC&)pFunction = GetProcAddress(dll, "function");
 			double arg1 = args.top();
@@ -100,7 +103,7 @@ void Calculator::importFunctions(HMODULE dll)
 			args.top() = arg2;
 			return arg2;
 		}
-		else if (!*func_binary && args.size() == 1) {
+		else if (!*func_binary && args.size() >= 1) {
 			double (*pFunction)(double);
 			(FARPROC&)pFunction = GetProcAddress(dll, "function");
 			args.top() = pFunction(args.top());
@@ -139,10 +142,11 @@ std::list<std::string> Calculator::getPolishNotation()
 					isPoint = true;
 				}
 				buf += std::string(1, expression[j]);
-				++j;
+				j++;
 			}
 			i += buf.size() - 1;
 			polish_list.push_back(buf);
+
 		}
 		//2) ,
 		else if (expression[i] == ',') 
@@ -154,18 +158,6 @@ std::list<std::string> Calculator::getPolishNotation()
 			i++;
 		}
 		//3) Operations
-		//else if (expression[i] == ')')
-		//{
-		//	//handleClosingBracket(reversePolskNotation, stack);
-		//}
-		//else if (expression[i] == '(')
-		//{
-		//	oper_stack.push(std::string(1, expression[i]));
-		//}
-		//else
-		//{
-		//	//handleOperation(reversePolskNotation, stack, &i);
-		//}
 		else 
 		{
 			bool totalisFonud = false;
@@ -179,7 +171,7 @@ std::list<std::string> Calculator::getPolishNotation()
 				}
 				if (isFound) {
 					totalisFonud = true;
-					i += item->getName().size();
+					i += item->getName().size() - 1;
 					if (oper_stack.empty() || item->getName() == "(")
 						oper_stack.push(item);
 					else {
@@ -212,34 +204,6 @@ std::list<std::string> Calculator::getPolishNotation()
 }
 double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 {
-	//std::stack<double> polish_sol;
-	//for (auto& piece : polish_list)
-	//{
-	//	if (isDigit(piece[0]) || piece[0] == '-' && piece.size() > 1) {
-	//		polish_sol.push(std::stod(piece));
-	//	}
-	//	else
-	//	{
-	//		for (auto const& item : operations) {
-	//			if (item->getName() == polish_list.front()) {
-	//				try {
-	//					item->getFunc(solution_stack);  //  operation applying
-	//				}
-	//				catch (std::exception& e) {
-	//					std::cout << e.what();
-	//					exit(1);
-	//				}
-
-	//			break;
-	//			}
-	//		}
-	//	}
-	//}
-
-	//if (polish_sol.size() != 1)
-	//{
-	//	throw std::exception("wrong expression");
-	//}
 	std::stack<double> polish_sol;
 	while (!polish_list.empty()) {
 		if (polish_list.front()[0] >= '0' && polish_list.front()[0] <= '9' || (polish_list.front()[0] == '-' && polish_list.front().size() > 1)) {
@@ -250,7 +214,7 @@ double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 			for (auto const& item : operations) {
 				if (item->getName() == polish_list.front()) {
 					try {
-						//item->getFunc(solution_stack);  //  operation applying
+						item->func(polish_sol);  //  operation applying
 					}
 					catch (std::exception& e) {
 						std::cout << e.what();
@@ -271,9 +235,9 @@ double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 std::string Calculator::Solve()
 {
 	std::list<std::string> polish = getPolishNotation();
-	/*double result = SolvePolishNotation(polish);
-	std::string str_result = std::to_string(result);*/
-	return "solved";
+	double result = SolvePolishNotation(polish);
+	std::string str_result = std::to_string(result);
+	return str_result;
 }
 void Calculator::removeSpaces() {
 	for (int i = 0; i < expression.length(); i++)
@@ -293,7 +257,7 @@ bool Calculator::isLetter(char const& c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ? true : false;
 }
-bool Calculator::isOper(char const& c)
+bool Calculator::isNotOper(std::string c)
 {
-	return (c == '+' || c == '-' || c == '*' || c == '/' || c == '(' || c == ')') ? true : false;
+	return (c != "+" && c != "-" && c != "*" && c != "/" && c != "(" && c != ")") ? true : false;
 }

@@ -27,7 +27,7 @@ public:
 	std::string Solve();
 	bool isDigit(char const& c);
 	bool isLetter(char const& c);
-	bool isOper(char const& c);
+	bool isNotOper(std::string c);
 	void EnterExpression();
 	void setExpression(std::string expr) { expression = expr; }
 	std::string getExpression() { return this->expression; }
