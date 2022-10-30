@@ -1,5 +1,5 @@
 ﻿#include "Calculator.h"
-//Init commit22
+
 int main()
 {
 	std::cout << "Console calculator\n";
