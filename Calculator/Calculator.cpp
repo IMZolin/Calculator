@@ -14,7 +14,7 @@ Calculator::~Calculator()
 Calculator::Calculator()
 {
 	BaseOperations();
-	//loadDll();
+	loadDll();
 }
 void Calculator::loadDll() {
 	std::filesystem::path pluginsPath = std::filesystem::current_path().parent_path();
@@ -112,26 +112,167 @@ void Calculator::importFunctions(HMODULE dll)
 }
 std::list<std::string> Calculator::getPolishNotation()
 {
-	loadDll();
 	removeSpaces();
+	std::stack<Operation*> oper_stack;
+	std::list<std::string> polish_list;
 	for (size_t i = 0; i < expression.size(); i++)
 	{
+		//1)Number
 		if (isDigit(expression[i]) || expression[i] == '-' && (i == 0 || (expression.size() != 1 && isDigit(expression[i - 1])) || (expression.size() != 1 && expression[i - 1] == '(')))
 		{
 			std::string buf;
-			buf += expression[i];
+			size_t j = i;
+			if (expression[i] == '-')
+			{
+				buf = "-";
+				++j;
+			}
+			bool isPoint = false;
+			while (isDigit(expression[j]) || expression[j] == '.')
+			{
+				if (expression[j] == '.')
+				{
+					if (isPoint)
+					{
+						throw std::exception("A number cannot have two separators (dots)");
+					}
+					isPoint = true;
+				}
+				buf += std::string(1, expression[j]);
+				++j;
+			}
+			i += buf.size() - 1;
+			polish_list.push_back(buf);
 		}
-
+		//2) ,
+		else if (expression[i] == ',') 
+		{
+			while (!oper_stack.empty() && oper_stack.top()->getName() != "(") {
+				polish_list.push_back(oper_stack.top()->getName());
+				oper_stack.pop();
+			}
+			i++;
+		}
+		//3) Operations
+		//else if (expression[i] == ')')
+		//{
+		//	//handleClosingBracket(reversePolskNotation, stack);
+		//}
+		//else if (expression[i] == '(')
+		//{
+		//	oper_stack.push(std::string(1, expression[i]));
+		//}
+		//else
+		//{
+		//	//handleOperation(reversePolskNotation, stack, &i);
+		//}
+		else 
+		{
+			bool totalisFonud = false;
+			for (auto const& item : operations) {
+				bool isFound = true;
+				for (int k = 0; k < item->getName().size(); ++k) {
+					if (item->getName()[k] != expression[i + k]) {
+						isFound = false;
+						break;
+					}
+				}
+				if (isFound) {
+					totalisFonud = true;
+					i += item->getName().size();
+					if (oper_stack.empty() || item->getName() == "(")
+						oper_stack.push(item);
+					else {
+						while (!oper_stack.empty() && oper_stack.top()->getPrior() >= item->getPrior() && oper_stack.top()->getName() != "(") {
+							polish_list.push_back(oper_stack.top()->getName());
+							oper_stack.pop();
+						}
+						if (item->getName() != ")") {
+							oper_stack.push(item);
+						}
+						else {
+							oper_stack.pop();
+						}
+					}
+					break;
+				}
+			}
+			if (!totalisFonud) {
+				throw std::exception("Operation or symbor is not correct\n");
+				exit(1);
+			}
+		}
 	}
-	return { "hello" };
+	while (!oper_stack.empty())
+	{
+		polish_list.push_back(oper_stack.top()->getName());
+		oper_stack.pop();
+	}
+	return polish_list;
 }
-double Calculator::SolvePolishNotation(std::list<std::string> polish)
+double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 {
+	//std::stack<double> polish_sol;
+	//for (auto& piece : polish_list)
+	//{
+	//	if (isDigit(piece[0]) || piece[0] == '-' && piece.size() > 1) {
+	//		polish_sol.push(std::stod(piece));
+	//	}
+	//	else
+	//	{
+	//		for (auto const& item : operations) {
+	//			if (item->getName() == polish_list.front()) {
+	//				try {
+	//					item->getFunc(solution_stack);  //  operation applying
+	//				}
+	//				catch (std::exception& e) {
+	//					std::cout << e.what();
+	//					exit(1);
+	//				}
+
+	//			break;
+	//			}
+	//		}
+	//	}
+	//}
+
+	//if (polish_sol.size() != 1)
+	//{
+	//	throw std::exception("wrong expression");
+	//}
 	std::stack<double> polish_sol;
-	return 0.0;
+	while (!polish_list.empty()) {
+		if (polish_list.front()[0] >= '0' && polish_list.front()[0] <= '9' || (polish_list.front()[0] == '-' && polish_list.front().size() > 1)) {
+			polish_sol.push(std::stod(polish_list.front()));
+			polish_list.pop_front();
+		}
+		else {
+			for (auto const& item : operations) {
+				if (item->getName() == polish_list.front()) {
+					try {
+						//item->getFunc(solution_stack);  //  operation applying
+					}
+					catch (std::exception& e) {
+						std::cout << e.what();
+						exit(1);
+					}
+
+					break;
+				}
+			}
+			polish_list.pop_front();
+		}
+	}
+	if (polish_sol.size() == 1)
+		return polish_sol.top();
+	else
+		throw std::exception("operation is missed\n");
 }
 std::string Calculator::Solve()
 {
+	std::list<std::string> polish = getPolishNotation();
+	/*double result = SolvePolishNotation(polish);
+	std::string str_result = std::to_string(result);*/
 	return "solved";
 }
 void Calculator::removeSpaces() {
