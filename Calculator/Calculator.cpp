@@ -34,40 +34,40 @@ void Calculator::loadDll() {
 }
 void Calculator::BaseOperations()
 {
-	Operation* add = new Operation("+", 1, true, false, [](std::stack<double>& s) {
-		if (s.size() < 2)
+	Operation* add = new Operation("+", 1, true, false, [](std::stack<double>& args) {
+		if (args.size() < 2)
 			throw std::exception("Error: There must be 2 arguments for addition\n");
-		double x = s.top();
-		s.pop();
-		double y = s.top() + x;
-		s.top() = y;
+		double arg1 = args.top();
+		args.pop();
+		double arg2 = args.top() + arg1;
+		args.top() = arg2;
 		});
-	Operation* sub = new Operation("-", 1, true, false, [](std::stack<double>& s) {
-		if (s.size() < 2)
+	Operation* sub = new Operation("-", 1, true, false, [](std::stack<double>& args) {
+		if (args.size() < 2)
 			throw std::exception("Error: There must be 2 arguments for substract\n");
-		double x = s.top();
-		s.pop();
-		double y = s.top() - x;
-		s.top() = y;
+		double arg1 = args.top();
+		args.pop();
+		double arg2 = args.top() - arg1;
+		args.top() = arg2;
 		});
-	Operation* mul = new Operation("*", 2, true, false, [](std::stack<double>& s) {
-		if (s.size() < 2)
+	Operation* mul = new Operation("*", 2, true, false, [](std::stack<double>& args) {
+		if (args.size() < 2)
 			throw std::exception("Error: There must be 2 arguments for multiplication\n");
-		double x = s.top();
-		s.pop();
-		double y = s.top() * x;
-		s.top() = y;
+		double arg1 = args.top();
+		args.pop();
+		double arg2 = args.top() * arg1;
+		args.top() = arg2;
 		});
-	Operation* div = new Operation("/", 2, true, false, [](std::stack<double>& s) {
-		if (s.size() < 2)
+	Operation* div = new Operation("/", 2, true, false, [](std::stack<double>& args) {
+		if (args.size() < 2)
 			throw std::exception("Error: There must be 2 arguments for division\n");
-		if (s.top() == 0)
+		if (args.top() == 0)
 			throw std::exception("Error: The second argument cannot be 0\n");
 		//s.top() == 0
-		double x = s.top();
-		s.pop();
-		double y = s.top() / x;
-		s.top() = y;
+		double arg1 = args.top();
+		args.pop();
+		double arg2 = args.top() / arg1;
+		args.top() = arg2;
 		});
 	Operation* left_bracket = new Operation("(", 0, false, false, nullptr);
 	Operation* right_bracket = new Operation(")", 0, false, false, nullptr);
@@ -171,11 +171,13 @@ std::list<std::string> Calculator::getPolishNotation()
 				}
 				if (isFound) {
 					totalisFonud = true;
+					
 					i += item->getName().size() - 1;
 					if (oper_stack.empty() || item->getName() == "(")
 						oper_stack.push(item);
 					else {
 						while (!oper_stack.empty() && oper_stack.top()->getPrior() >= item->getPrior() && oper_stack.top()->getName() != "(") {
+							if (item->getPrefix() == true)
 							polish_list.push_back(oper_stack.top()->getName());
 							oper_stack.pop();
 						}
@@ -190,13 +192,17 @@ std::list<std::string> Calculator::getPolishNotation()
 				}
 			}
 			if (!totalisFonud) {
-				throw std::exception("Operation or symbor is not correct\n");
+				throw std::exception("Operation or symbol is not correct\n");
 				exit(1);
 			}
 		}
 	}
 	while (!oper_stack.empty())
 	{
+		if (oper_stack.top()->getName() == "(")
+		{
+			throw std::exception("Error: The bracket has been lost");
+		}
 		polish_list.push_back(oper_stack.top()->getName());
 		oper_stack.pop();
 	}
@@ -214,7 +220,7 @@ double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 			for (auto const& item : operations) {
 				if (item->getName() == polish_list.front()) {
 					try {
-						item->func(polish_sol);  //  operation applying
+						item->func(polish_sol);  
 					}
 					catch (std::exception& e) {
 						std::cout << e.what();
@@ -261,3 +267,4 @@ bool Calculator::isNotOper(std::string c)
 {
 	return (c != "+" && c != "-" && c != "*" && c != "/" && c != "(" && c != ")") ? true : false;
 }
+

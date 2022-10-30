@@ -7,6 +7,7 @@
 #include <stack>
 #include <list>
 #include <algorithm>
+#include<sstream>
 #include "Operation.h"
 const std::string plugins_dir = "plugins";
 
