@@ -11,7 +11,6 @@ int main()
 			break;
 		try
 		{
-			calc.removeSpaces();
 			std::cout << calc.getExpression() << "=" << calc.Solve() << std::endl;
 		}
 		catch (std::exception& error)

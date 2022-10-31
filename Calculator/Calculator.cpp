@@ -63,7 +63,6 @@ void Calculator::BaseOperations()
 			throw std::exception("Error: There must be 2 arguments for division\n");
 		if (args.top() == 0)
 			throw std::exception("Error: The second argument cannot be 0\n");
-		//s.top() == 0
 		double arg1 = args.top();
 		args.pop();
 		double arg2 = args.top() / arg1;
@@ -155,34 +154,33 @@ std::list<std::string> Calculator::getPolishNotation()
 				polish_list.push_back(oper_stack.top()->getName());
 				oper_stack.pop();
 			}
-			i++;
 		}
 		//3) Operations
 		else 
 		{
-			bool totalisFonud = false;
-			for (auto const& item : operations) {
-				bool isFound = true;
-				for (int k = 0; k < item->getName().size(); ++k) {
-					if (item->getName()[k] != expression[i + k]) {
-						isFound = false;
+			bool operExists = false;
+			for (auto const& oper : operations) {
+				bool letterMatch = true;
+				for (int k = 0; k < oper->getName().size(); ++k) {
+					if (oper->getName()[k] != expression[i + k]) {
+						letterMatch = false;
 						break;
 					}
 				}
-				if (isFound) {
-					totalisFonud = true;
+				if (letterMatch) {
+					operExists = true;
 					
-					i += item->getName().size() - 1;
-					if (oper_stack.empty() || item->getName() == "(")
-						oper_stack.push(item);
+					i += oper->getName().size() - 1;
+					if (oper_stack.empty() || oper->getName() == "(")
+						oper_stack.push(oper);
 					else {
-						while (!oper_stack.empty() && oper_stack.top()->getPrior() >= item->getPrior() && oper_stack.top()->getName() != "(") {
-							if (item->getPrefix() == true)
+						while (!oper_stack.empty() && oper_stack.top()->getPrior() >= oper->getPrior() && oper_stack.top()->getName() != "(") {
+							if (oper->getPrefix() == true)
 							polish_list.push_back(oper_stack.top()->getName());
 							oper_stack.pop();
 						}
-						if (item->getName() != ")") {
-							oper_stack.push(item);
+						if (oper->getName() != ")") {
+							oper_stack.push(oper);
 						}
 						else {
 							oper_stack.pop();
@@ -191,12 +189,13 @@ std::list<std::string> Calculator::getPolishNotation()
 					break;
 				}
 			}
-			if (!totalisFonud) {
+			if (!operExists) {
 				throw std::exception("Operation or symbol is not correct\n");
 				exit(1);
 			}
 		}
 	}
+	//4)push operations from oper_stack to polish_list
 	while (!oper_stack.empty())
 	{
 		if (oper_stack.top()->getName() == "(")
@@ -212,7 +211,7 @@ double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 {
 	std::stack<double> polish_sol;
 	while (!polish_list.empty()) {
-		if (polish_list.front()[0] >= '0' && polish_list.front()[0] <= '9' || (polish_list.front()[0] == '-' && polish_list.front().size() > 1)) {
+		if (isDigit(polish_list.front()[0]) || (polish_list.front()[0] == '-' && polish_list.front().size() > 1)) {
 			polish_sol.push(std::stod(polish_list.front()));
 			polish_list.pop_front();
 		}
@@ -236,7 +235,7 @@ double Calculator::SolvePolishNotation(std::list<std::string> polish_list)
 	if (polish_sol.size() == 1)
 		return polish_sol.top();
 	else
-		throw std::exception("operation is missed\n");
+		throw std::exception("Error: The operation didn't found\n");
 }
 std::string Calculator::Solve()
 {
@@ -259,12 +258,5 @@ bool Calculator::isDigit(char const& c)
 {
 	return (c >= '0' && c <= '9') ? true : false;
 }
-bool Calculator::isLetter(char const& c)
-{
-	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ? true : false;
-}
-bool Calculator::isNotOper(std::string c)
-{
-	return (c != "+" && c != "-" && c != "*" && c != "/" && c != "(" && c != ")") ? true : false;
-}
+
 
